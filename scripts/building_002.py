@@ -9,7 +9,7 @@ EH_up   = 30.7482
 
 def elevator_hall(cont):
 	collision = cont.sensors[0]
-	
+
 	elevator = cont.owner.parent.parent
 	target = elevator["target"]
 	pos = elevator.localPosition
@@ -21,9 +21,8 @@ def elevator_hall(cont):
 			target = EH_up
 	elif collision.status == bge.logic.KX_SENSOR_JUST_DEACTIVATED:
 		cont.owner.parent.visible = False
-	if target != 0:
-		if elevator_goto_step(elevator, target):
-			target = 0
+	if target != 0 and elevator_goto_step(elevator, target):
+		target = 0
 	elevator["target"] = target
 	
 
@@ -65,7 +64,7 @@ def hall_mirror_init(cont):
 	owner = cont.owner
 	scene = bge.logic.getCurrentScene()
 	reflectcam = scene.objects['reflectcamera']
-	
+
 	m = texture.Texture(owner, 5, 1)
 	m.source = texture.ImageRender(scene, reflectcam)
 	m.source.capsize = [512, 512]
@@ -89,7 +88,7 @@ def hall_mirror_step(cont):
 	unmir = Matrix.Scale(-1, 3, Vector((1,0,0)))
 
 	owner.visible = False
-	
+
 	# set reflect camera
 	pos = (activecam.position - owner.position) * m1
 	reflectcam.position = owner.position + pos*r180*unmir*m2
@@ -98,26 +97,26 @@ def hall_mirror_step(cont):
 	ori = ori * m1 * r180 * unmir * m2
 	ori.transpose()
 	reflectcam.orientation = ori
-	
+
 	# invert face culling
 	bgl.glCullFace(bgl.GL_FRONT)
-	
+
 	# plane equation
 	normal = owner.getAxisVect((0,0,1))
 	dist = -owner.position.project(normal).magnitude   # distance to plane
 	v = (activecam.position - owner.position).normalized().dot(normal)  # face culling
-	
+
 	# invert normals when backface
 	if v<0:  normal = -normal
-	
+
 	# making a clipping plane buffer
 	plane = bgl.Buffer(bgl.GL_DOUBLE, [4], [-normal[0], -normal[1], -normal[2],  offset-dist])
 	bgl.glClipPlane(bgl.GL_CLIP_PLANE0, plane)
 	bgl.glEnable(bgl.GL_CLIP_PLANE0)
-	
+
 	# rendering the reflection texture
 	owner['mirror'].refresh(True)
-	
+
 	# restoring face culling to normal and disabling the geometry clipping
 	bgl.glCullFace(bgl.GL_BACK)
 	bgl.glDisable(bgl.GL_CLIP_PLANE0)

@@ -18,7 +18,7 @@ def mirror_init():
 def mirror_update():
 	owner = bge.logic.getCurrentController().owner
 	scene = bge.logic.getCurrentScene()
-	
+
 	accam = scene.active_camera
 	cam = scene.objects['Camera']
 	cam.worldPosition = accam.worldPosition

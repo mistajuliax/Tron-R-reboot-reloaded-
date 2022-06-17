@@ -11,37 +11,36 @@ def character_callback(server, packet, host):
 		if server.datas[uniqid].host == server.hosts.index(host):
 			# send to all except to source host
 			for dst in server.hosts:
-				if dst != host and dst != 'all': server.add_to_queue(packet, host)
+				if dst not in [host, 'all']: server.add_to_queue(packet, host)
 			return True
 	return False
 
 network.Server.callbacks.append(character_callback)
 
 def avatar_callback(server, packet, host):
-	if similar(packet, b'avatar\0'):
-		if packet.count(b'\0') < 3: return True
-		idbytes = packet.split(b'\0')[2]
-		if idbytes not in server.datas.keys(): 
-			debugmsg('error: avatar_callback: avatar', idbytes, "doesn't exist")
-			return True
-	
-		# if host has no known avatar, then register it.
-		if host not in server.avatars.keys():
-			for other in server.avatars.keys():
-				if other in server.hosts and server.avatars[other] == idbytes: 
-					debugmsg('error: avatar_callback: an other host got already avatar', idbytes)
-					return True
-			server.avatars[host] = idbytes
-			server.datas[idbytes].host = server.hosts.index(host)
-		# only registered avatars associated with the good host can provid theses informations
-		elif server.avatars[host] == idbytes:
-			# send to all except to source host
-			for dst in server.hosts:
-				if dst != host and dst != 'all': server.add_to_queue(b'character'+packet[6:], dst)
-		else:
-			return False
+	if not similar(packet, b'avatar\0'):
+		return False
+	if packet.count(b'\0') < 3: return True
+	idbytes = packet.split(b'\0')[2]
+	if idbytes not in server.datas.keys(): 
+		debugmsg('error: avatar_callback: avatar', idbytes, "doesn't exist")
 		return True
-	return False
+
+		# if host has no known avatar, then register it.
+	if host not in server.avatars.keys():
+		for other in server.avatars.keys():
+			if other in server.hosts and server.avatars[other] == idbytes: 
+				debugmsg('error: avatar_callback: an other host got already avatar', idbytes)
+				return True
+		server.avatars[host] = idbytes
+		server.datas[idbytes].host = server.hosts.index(host)
+	elif server.avatars[host] == idbytes:
+			# send to all except to source host
+		for dst in server.hosts:
+			if dst not in [host, 'all']: server.add_to_queue(b'character'+packet[6:], dst)
+	else:
+		return False
+	return True
 			
 
 network.Server.avatars = {} # list of ID's of avatars for each host (as bytes), referenced by host
@@ -82,24 +81,24 @@ def vehicle_callback(server, packet, host):
 		data = server.datas[idbytes]
 		index = server.hosts.index(host)
 		if data.host != index:
-			if data.host == None or data.host > index:
+			if data.host is None or data.host > index:
 				network.debugmsg('assign vehicle', idbytes, 'to host', index, 'instead of', data.host)
 				data.host = index # an instance works as a pointer
 			return True
-		
+
 		# on setting a new driver, the, use the same host to provide the vehicle informations
 		if info == b'drive':
 			if misc.isdigit() and misc in server.datas:
 				data.host = server.datas[misc].host
-		
-		elif info == b'destroy' or info == b'remove':
+
+		elif info in [b'destroy', b'remove']:
 			del server.datas[idbytes]
 			return True
 		elif info == b'exit':
 			data.host = None
 		for dst in server.hosts:
 			if dst != host: server.add_to_queue(packet, dst)
-		
+
 	return False
 
 network.Server.callbacks.append(vehicle_callback)

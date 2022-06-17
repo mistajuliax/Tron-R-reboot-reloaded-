@@ -21,15 +21,14 @@ class FileTransferServer(basic_server):
 	# retourne le path absolu d'un fichier ou repertoire si il est dans l'arboressence autorisée, None sinon
 	def realpath(self, path):
 		path = os.path.abspath(path)
-		if sys.platform[:4] == 'win':
-			separator = '\\'
-		else : 
-			separator = '/'
+		separator = '\\' if sys.platform[:4] == 'win' else '/'
 		dirs = path.split(separator)
 		pathdirs = self.path.split(separator)
-		for i in range(len(pathdirs)):
-			if i >= len(dirs) or dirs[i] != pathdirs[i] : return False
-		return path
+		return next(
+		    (False for i in range(len(pathdirs))
+		     if i >= len(dirs) or dirs[i] != pathdirs[i]),
+		    path,
+		)
 	
 	# envoie un fichier au client (présuppose que le client en attend deja un)
 	def sendfile(self, index, pathfrom):
@@ -142,24 +141,20 @@ class FileTransferServer(basic_server):
 			step_date = t
 			# analyser les derniers paquets
 			for index in range(len(self.hosts)):
-				packet = self.getpacket(index)
-				
-				if packet:
-					if rep(packet, 'want file') :
+				if packet := self.getpacket(index):
+					if rep(packet, 'want file'):
 						pathfrom = packet[10:]
 						self.clearpacket(index)
-						realpath = self.realpath(pathfrom)
-						if realpath :
+						if realpath := self.realpath(pathfrom):
 							self.send(index, 'accept')
 							self.sendfile(index, realpath)
-						else :
+						else:
 							self.send(index, 'reject')
-					
+
 					if rep(packet, 'take file'):
 						pathto = packet[10:]
 						self.clearpacket(index)
-						realpath = self.realpath(pathto)
-						if realpath:
+						if realpath := self.realpath(pathto):
 							self.send(index, 'accept')
 							self.recvfile(index, realpath)
 						else:
@@ -171,8 +166,7 @@ class FileTransferServer(basic_server):
 
 
 def rep(s, pattern):
-	if s[:len(pattern)] == pattern : return True
-	return False
+	return s[:len(pattern)] == pattern
 
 
 
@@ -180,7 +174,7 @@ class FileTransferClient(basic_client):
 	
 	# demande au serveur le fichier donné, retourne true seulement si fichier transferé
 	def getfile(self, pathfrom, pathto):
-		self.send('want file '+pathfrom)
+		self.send(f'want file {pathfrom}')
 		reponse = self.nextpacket()
 		if reponse == 'reject':
 			return False
@@ -239,7 +233,7 @@ class FileTransferClient(basic_client):
 
 	# demande au serveur se recevoir un fichier
 	def putfile(self, pathfrom, pathto):
-		self.send('take file '+pathto)
+		self.send(f'take file {pathto}')
 		reponse = self.nextpacket()
 		if reponse == 'reject':
 			return False
@@ -305,14 +299,13 @@ class FileTransferClient(basic_client):
 
 
 if __name__ == '__main__':
-	port = 10000
-	if len(sys.argv) >= 3: port = int(sys.argv[2])
+	port = int(sys.argv[2]) if len(sys.argv) >= 3 else 10000
 	if sys.argv[1] == 'server':
 		s = FileTransferServer(port, '/home/jimy/tron-reboot/server/a')
 		input("press enter to accept client.")
 		s.accept()
 		s.start()
-		
+
 	else:
 		c = FileTransferClient(('192.168.1.10', port))
 		input("press enter to get file.")

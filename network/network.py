@@ -114,7 +114,7 @@ class Server(socket.socket):
 			debugmsg('internal loopback (127.0.0.1) used.')
 			localhost = '127.0.0.1'
 		else:
-			debugmsg('LAN interface (with ip of computer %s) used.' % localhost)
+			debugmsg(f'LAN interface (with ip of computer {localhost}) used.')
 		self.bind((localhost, self.port))
 		self.setblocking(False)
 	

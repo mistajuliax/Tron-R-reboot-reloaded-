@@ -41,7 +41,7 @@ To use it:
 def display_in_field(cont):
 	owner     = cont.owner
 	camera    = bge.logic.getCurrentScene().active_camera
-	
+
 	if 'field_dir' in owner:
 		direction = owner['field_dir']
 		if type(direction) == str:
@@ -51,10 +51,7 @@ def display_in_field(cont):
 		direction = Vector((1,0,0))
 		owner['field_dir'] = direction
 	limit = owner['field_limit']
-	
+
 	worlddir = direction.rotate(owner.worldOrientation)
 	owntocam = camera.worldPosition - owner.worldPosition
-	if worlddir.angle(owntocam) > limit:
-		owner.visible = False
-	else:
-		owner.visible = True
+	owner.visible = worlddir.angle(owntocam) <= limit

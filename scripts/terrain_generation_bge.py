@@ -58,18 +58,14 @@ class TerrainNode(object) :
 		self.dir = dir
 		self.exists = exists
 
-def create_matrix(unit=0, dimensions=[1]) :
+def create_matrix(unit=0, dimensions=[1]):
 	dimensions = list(dimensions)
 	dimensions.reverse()
-	if len(dimensions) :
-		mat = []
-		for i in range(dimensions[0]) :
-			mat.append(unit)
-	for dim in dimensions[1:] :
+	if len(dimensions):
+		mat = [unit for _ in range(dimensions[0])]
+	for dim in dimensions[1:]:
 		u = mat
-		mat = []
-		for i in range(dim) :
-			mat.append(deepcopy(u))
+		mat = [deepcopy(u) for _ in range(dim)]
 	return mat
 
 #def generate_cloud(position=Vector((0,0,0), dimensions = Vector((200,200,200))) :
@@ -118,7 +114,7 @@ class Terrain(object):
 		print("floor set")
 		"""
 		# creer les massifs
-		for i in range(0, int((random.random()+density)*math.sqrt(res_x*res_y))) :
+		for _ in range(int((random.random()+density)*math.sqrt(res_x*res_y))):
 			# decision de la taille du massif
 			sizex = random.randrange(1,7)
 			sizey = random.randrange(1,7)
@@ -136,7 +132,7 @@ class Terrain(object):
 			# retirer les bords
 			possibilities = [(0,0), (1,0), (0,1)]
 			posx, posy = 0, 0
-			for i in range(5) :
+			for _ in range(5):
 				x, y = random.choice(possibilities)
 				posx += x
 				posy += y

@@ -45,8 +45,7 @@ class Avatar(character.Character) :
 		scene.addObject("skybox", ref)
 	
 
-	def setHp(self, hp) :
-		pass
+	def setHp(self, hp):
 		"""
 		if not self.overlay : self.overlay = bge.logic.getSceneList()[1]
 		character.Character.setHp(self, hp)
@@ -62,17 +61,14 @@ class Avatar(character.Character) :
 		self.overlay.objects["hp progress bar"].localScale.x = hp
 		"""
 
-	def updateItemOverlay(self) :
+	def updateItemOverlay(self):
 		if not self.overlay : self.overlay = bge.logic.getSceneList()[1]
 
 		empty_scale = 0.8
 		full_scale = 1
-		empty_hand_scale = 0.5
-		full_hand_scale = 1.8
-		
 		# inventory
-		for i in range(len(self.skin.items)) :
-			bloc = self.overlay.objects["item bloc "+str(i)]
+		for i in range(len(self.skin.items)):
+			bloc = self.overlay.objects[f"item bloc {str(i)}"]
 			visual = bloc.children[0]
 			text = bloc.children[1]
 			if self.skin.items[i] :
@@ -88,13 +84,16 @@ class Avatar(character.Character) :
 		bloc = self.overlay.objects["hand bloc"]
 		visual = bloc.children[0]
 		text = bloc.children[1]
-		if self.skin.handitem :
+		if self.skin.handitem:
+			full_hand_scale = 1.8
+
 			bloc.localScale = mathutils.Euler((full_hand_scale,  full_hand_scale,  full_hand_scale))
 			if "itemname" in self.skin.handitem :
 				text["Text"] = self.skin.handitem["itemname"].upper()
 			else :
 				text["Text"] = self.skin.handitem.name.upper()
-		else :
+		else:
+			empty_hand_scale = 0.5
 			bloc.localScale = mathutils.Euler((empty_hand_scale, empty_hand_scale, empty_hand_scale))
 			text["Text"] = "<EMPTY>"
 		
@@ -136,13 +135,12 @@ class Avatar(character.Character) :
 	def syncInfo(self, info, data):
 		if bge.logic.client:
 			if type(data) == int:      data = str(data).encode()
-			elif type(data) == bytes:  pass
-			else:                      data = pickle.dumps(data)
+			elif type(data) != bytes:                      data = pickle.dumps(data)
 			# similar to Character class's method, but use the marker 'avatar\0' instead of 'character\0'
 			bge.logic.client.queue.append(b'avatar\0'+info+b'\0'+str(bm.get_object_id(self.box)).encode()+b'\0'+data)
 	
 	def toggle_menu(self, menu=None):
-		if menu==None: menu = not self.menu_active
+		if menu is None: menu = not self.menu_active
 		if menu:
 			self.overlay.objects['menu'].visible = True
 			for child in self.overlay.objects['menu'].childrenRecursive:
@@ -201,7 +199,7 @@ def post_init():
 
 
 
-def setup_overlay() :
+def setup_overlay():
 	scene = bge.logic.getCurrentScene()
 	camera = scene.objects["Camera"]
 	#first_player.overlay = scene
@@ -213,27 +211,26 @@ def setup_overlay() :
 	left = scene.objects["left side"]
 
 	camera.setViewport(0, 0, w, h)   # n'a pas d'effet
-	
-	if w >= h :
+
+	if w >= h:
 		x = ((top.localPosition.z-bottom.localPosition.z)/h * w)/2
 		right.localPosition.x = x
 		left.localPosition.x = -x
-	elif h > w :
+	else:
 		z = ((right.localPosition.x-left.localPosition.x)/w * h)/2
 		top.localPosition.z = z
 		bottom.localPosition.z = -z
 
 
-def _touch(sensor, key) :
-	if sensor.getKeyStatus(key) in (bge.logic.KX_INPUT_JUST_ACTIVATED, bge.logic.KX_INPUT_ACTIVE):
-		return True
-	else: return False
+def _touch(sensor, key):
+	return sensor.getKeyStatus(key) in (
+	    bge.logic.KX_INPUT_JUST_ACTIVATED,
+	    bge.logic.KX_INPUT_ACTIVE,
+	)
 
-def _click(sensor, key) :
+def _click(sensor, key):
 	status = sensor.getButtonStatus(key)
-	if status == bge.logic.KX_INPUT_JUST_ACTIVATED or status == bge.logic.KX_INPUT_ACTIVE:
-		return True
-	else: return False
+	return status in [bge.logic.KX_INPUT_JUST_ACTIVATED, bge.logic.KX_INPUT_ACTIVE]
 
 
 
@@ -245,7 +242,7 @@ change = False
 menu_flag = True
 boxrotz = 0
 
-def keyboard_input() :
+def keyboard_input():
 	"""
 	keyboard_input() est le callback du clavier, il est appelé par le spawn du premier joueur
 	"""
@@ -254,13 +251,13 @@ def keyboard_input() :
 	own = cont.owner
 	sens = cont.sensors[0]
 
-	change = False; # doit etre placé à vrai si l'utilisateur effectue un déplacement
+	change = False
 	x = (mx)*config.mouse.sensibility # réorientation de la camera (utilisation des variables de mouse_input() )
 	y = (my)*config.mouse.sensibility
 	camrotz = 0 # lacet de la camera dans le referentiel de la boite
-	
+
 	## menu ##
-	
+
 	if sens.getKeyStatus(config.keys.pause_menu) == KX_INPUT_JUST_ACTIVATED:
 		first_player.toggle_menu()
 	if first_player.menu_active: return
@@ -277,7 +274,7 @@ def keyboard_input() :
 	# drop
 	if _touch(sens, config.keys.drop) :
 		first_player.drop()
-		
+
 	# wield item
 	if _touch(sens, config.keys.item1):
 		first_player.wieldItem(0)
@@ -285,16 +282,16 @@ def keyboard_input() :
 		first_player.wieldItem(1)
 	if _touch(sens, config.keys.item3):
 		first_player.wieldItem(2)
-	
+
 	# show/hide helmet
 	if sens.getKeyStatus(config.keys.toggle_helmet) == KX_INPUT_JUST_ACTIVATED:
 		first_player.toggleHelmet()
 
-	
+
 	## motion control ##
 
 	if first_player.isactive() != False:
-		if _touch(sens, config.keys.run) :
+		if _touch(sens, config.keys.run):
 			# devant
 			if _touch(sens, config.keys.forward) :
 				# orientation du regard selon les touches de droite t gauche
@@ -310,23 +307,20 @@ def keyboard_input() :
 			else :
 				first_player.updateRunning(0);
 			change = True;
-		else :
-			# devant
-			if _touch(sens, config.keys.forward):
-				# orientation du regard selon les touches de droite t gauche
-				if _touch(sens, config.keys.left):
-					camrotz = -math.pi/4;
-				elif _touch(sens, config.keys.right):
-					camrotz = math.pi/4;
-				# marche
-				first_player.updateRunning(1.6);
-				change = True;
-			# derriere
-			elif _touch(sens, config.keys.back):
-				first_player.updateRunning(-1.6);
-				change = True;
-			else :
-				first_player.updateRunning(0);
+		elif _touch(sens, config.keys.forward):
+			# orientation du regard selon les touches de droite t gauche
+			if _touch(sens, config.keys.left):
+				camrotz = -math.pi/4;
+			elif _touch(sens, config.keys.right):
+				camrotz = math.pi/4;
+			# marche
+			first_player.updateRunning(1.6);
+			change = True;
+		elif _touch(sens, config.keys.back):
+			first_player.updateRunning(-1.6);
+			change = True;
+		else:
+			first_player.updateRunning(0);
 
 		# sauter
 		if _touch(sens, config.keys.jump) :
@@ -339,18 +333,16 @@ def keyboard_input() :
 			first_player.takeWay(-x)
 			#first_player.orient.z = -x
 
-	if first_player.vehicle :
+	if first_player.vehicle:
 		speed = 0.
 		yaw = 0.
-		breaks = False
 		if _touch(sens, config.vehicle.keyford):
 			speed = first_player.vehicle['class'].max_speed * 2/3
 		if _touch(sens, config.vehicle.keyleft):
 			yaw = 3.14
 		if _touch(sens, config.vehicle.keyright):
 			yaw = -3.14
-		if _touch(sens, config.vehicle.keyback):
-			breaks = True
+		breaks = bool(_touch(sens, config.vehicle.keyback))
 		if _touch(sens, config.vehicle.keyboost):
 			speed = first_player.vehicle['class'].max_speed
 
@@ -376,7 +368,7 @@ def mouse_input() :
 	if menu_flag:
 		menu_flag = False
 		return
-	
+
 	if first_player.vehicle:
 		c = bge.logic.config['vehicle_free_view'] # float between 1.0 and 0.0, 1 means view is entirely free and is not depending from the vehicle orientation
 		vorient = first_player.vehicle.worldOrientation.to_euler()
@@ -396,7 +388,7 @@ def mouse_input() :
 		first_player.actionItem(2)
 	if _click(sens, config.interact.itemaction3):
 		first_player.actionItem(3)
-	
+
 	mx += sens.position[0] - WIN_MIDDLE_X
 	my += sens.position[1] - WIN_MIDDLE_Y
 	x = mx*config.mouse.sensibility
@@ -435,7 +427,7 @@ def mouse_over_item(cont):
 		cursor.localPosition = (-1., -0.1, 0)
 		cursor.localOrientation = mathutils.Euler((-HALFPI, 0., 0.))
 		# play sound
-		sound = aud.Factory(bge.logic.sounds_path+'/share/interface-rollover.mp3')
+		sound = aud.Factory(f'{bge.logic.sounds_path}/share/interface-rollover.mp3')
 		audio = aud.device()
 		audio.volume = 0.1
 		audio.play(sound)

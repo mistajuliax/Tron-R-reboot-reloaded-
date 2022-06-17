@@ -39,8 +39,8 @@ LAUNCHER_PROPERTY = "launcher" # Game Property du disque faisant reférence au l
 def item_init():
 	cont = bge.logic.getCurrentController()
 	owner = cont.owner
-	
-	if not "lame" in owner:
+
+	if "lame" not in owner:
 		for obj in owner.children:
 			if "lame" in obj:
 				owner["lame"] = obj
@@ -52,7 +52,7 @@ def item_init():
 		
 
 
-def update_activity() :
+def update_activity():
 	"""update_activity() met a jour l'apparence et la dynamique du disque en fonction des GameProperties de l'objet.
 	"""
 	cont = bge.logic.getCurrentController()
@@ -62,8 +62,8 @@ def update_activity() :
 	sound_active     = owner.actuators['active']
 	sound_activate   = owner.actuators['activate']
 	sound_deactivate = owner.actuators['deactivate']
-	
-	
+
+
 	if owner['active'] == True:
 		if owner['just activated'] :
 			cont.activate(sound_activate)
@@ -90,7 +90,7 @@ def update_activity() :
 			dist = sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z)
 			if dist >= MAX_DISTANCE_LAUNCHER :
 				owner['class'].returnToLauncher()
-		
+
 		if collision.status in (KX_SENSOR_ACTIVE, KX_SENSOR_JUST_ACTIVATED):
 			collision.reset()
 			owner['class'].hittimes += 1
@@ -99,13 +99,12 @@ def update_activity() :
 				owner['class'].returnToLauncher()
 			hits = collision.hitObjectList
 			for hit in hits:
-				if "hp" in hit :
-					if hit != owner['class'].getOwnerObject() :
-						# evolved system with a class which represents the object
-						if "class" in hit : hit['class'].setHp(hit['hp']-1)
-						# basic object with blender logic brics
-						else : hit["hp"] -= 1
-	else :
+				if "hp" in hit and hit != owner['class'].getOwnerObject():
+					# evolved system with a class which represents the object
+					if "class" in hit : hit['class'].setHp(hit['hp']-1)
+					# basic object with blender logic brics
+					else : hit["hp"] -= 1
+	else:
 		if owner['just deactivated']:
 			cont.activate(sound_deactivate)
 			owner['just deactivated'] = False
@@ -196,7 +195,7 @@ class IDDisc(Item):
 		self.object['active'] = active
 		self.object['lame']['active'] = active
 		character = self.getOwner()
-		
+
 		if active :
 			self.object['just activated'] = True
 			self.object.linVelocityMin = 35
@@ -224,7 +223,7 @@ class IDDisc(Item):
 					take = character.skin.animations['biking take disk']
 					character.skin.armature.playAction(loop[0], loop[4], loop[4], layer=0, play_mode=KX_ACTION_MODE_LOOP)
 					character.skin.armature.playAction(take[0], take[3], take[4], layer=2, layer_weight=0)
-					
+
 		self.object['active'] = active
 
 	

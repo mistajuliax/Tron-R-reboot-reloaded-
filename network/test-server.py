@@ -7,8 +7,7 @@ sys.path.append('.')
 import network
 import server
 
-port = 30000
-if len(sys.argv) > 1: port = int(sys.argv[1])
+port = int(sys.argv[1]) if len(sys.argv) > 1 else 30000
 server = network.Server(port)
 server.setblocking(False)
 run = True

@@ -143,7 +143,7 @@ trail_precision = 1.0 # (meters)
 
 
 def putshaderuniform(shader, p, i):
-	shader.setUniform3f('p'+str(i), p[i][0], p[i][1], p[i][2])
+	shader.setUniform3f(f'p{str(i)}', p[i][0], p[i][1], p[i][2])
 
 def update_trail(cont):
 	owner = cont.owner
@@ -168,11 +168,11 @@ def add_trail(marker, length=100):
 	mesh = trail.meshes[0]
 	mat = mesh.materials[0]
 	trail_len = int(length/trail_precision)
-	
+
 	trail['len'] = length
 	trail['marker'] = marker
 	trail['path'] = [trail.position] * trail_len
-			
+
 	if 'shader' not in trail:
 		shader = trail['shader'] = mat.getShader()
 	if not shader.isValid():
@@ -180,7 +180,7 @@ def add_trail(marker, length=100):
 		# declaration on positions
 		uniforms = 'p0, p1'
 		for i in range(2, trail_len):
-			uniforms += ', p'+str(i)
+			uniforms += f', p{str(i)}'
 		# selection of position to use
 		selecter = '\tif (I >= -%f) pos = p0;\n' % (1/float(trail_len),)
 		for i in range(trail_len):
@@ -190,10 +190,10 @@ def add_trail(marker, length=100):
 		shader.setSource(vertex, trail_fragment, 1)
 		shader.setSampler("tex_emit", 0)
 		shader.setUniform1f('len', trail_len)
-		
+
 		for i in range(trail_len):
 			putshaderuniform(shader, trail['path'], i)
-	
+
 	return trail
 	    
 	
@@ -327,7 +327,7 @@ def cycle_update(cont):
 	object = cont.owner
 	cycle = object['class']
 	onfloor = cycle.floor.sensors[0].status
-	
+
 	speed  = object['speed']
 	yaw    = object['yaw']
 	breaks = object['breaks']
@@ -336,10 +336,10 @@ def cycle_update(cont):
 	orientation = object.localOrientation.to_euler()
 	angular = object.localAngularVelocity
 	mass = object.mass
-	
+
 	if cycle.driver:
 		cycle.driver['class'].update_TPV_distance(bge.logic.config['game_tpv_distance']+velocity.magnitude/4)
-	
+
 	if onfloor in (KX_INPUT_JUST_ACTIVATED, KX_INPUT_ACTIVE):
 		# acceleration
 		if speed < velocity.y:
@@ -348,29 +348,29 @@ def cycle_update(cont):
 			acceleration = cycle.max_accel
 		propulsion = mass * acceleration
 		lateral_force = -mass * velocity.x / cycle.reach_stability
-		
+
 		if breaks and velocity.y > 0: 
 			yaw *= 2
 			propulsion = -mass * cycle.max_accel
-		
+
 		# tilt rotation
 		if yaw > 0.1:    inclin = -pi/5
 		elif yaw < -0.1: inclin = pi/5
 		else:            inclin = 0
-			
+
 		tilt = (inclin - orientation.y) / cycle.reach_tilt
-		
+
 		# yaw speed
 		if yaw > 0: yaw = min(cycle.max_yaw*velocity.y, yaw)
 		else:       yaw = max(-cycle.max_yaw*velocity.y, yaw)
-		
+
 		# apply physic changes
 		object.applyForce((lateral_force, propulsion, 0.), True)
 		#object.applyTorque((0., sin(orientation.y)*torque_yaw, cos(orientation.y)*torque_yaw), True)
 		object.localAngularVelocity.y = tilt
 		#object.localAngularVelocity.x = yaw * sin(orientation.y)
 		object.localAngularVelocity.z = yaw * cos(orientation.y)
-		
+
 		# update wheels animation with vehicle speed
 		if cycle.animup == 20:
 			cycle.animup = 0

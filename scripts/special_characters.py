@@ -17,6 +17,7 @@ This file is part of Tron-R.
     along with Tron-R.  If not, see <http://www.gnu.org/licenses/>. 2
 """
 
+
 from copy import deepcopy
 
 MOVE_ACTION = "move action"
@@ -26,7 +27,7 @@ HEADY_ACTION = "head Y"
 
 # dictionnary of all characters animations
 animations = {
-	
+
 	'clu' : { # animations pour CLU
 		"click" : ('clu item', 285, 289, 290, 292),
 		# disk actions
@@ -48,7 +49,7 @@ animations = {
 		"run ford" : ('clu move', 141, 147, 161, 168),
 		"jump" : ('clu move', 168, 173, 182, 191),
 		},
-	
+
 	'flynn' : { # animations pour CLU
 		"click" : ('flynn item', 285, 289, 290, 292),
 		# disk actions
@@ -70,7 +71,7 @@ animations = {
 		"run ford" : ('flynn move', 141, 147, 161, 168),
 		"jump" : ('flynn move', 168, 173, 182, 191),
 		},
-		
+
 	'monitor' : { # animations pour Moniteur
 		"click" : ('monitor item', 85, 88, 80, 94),
 		# disk actions
@@ -96,11 +97,11 @@ animations = {
 
 # some prefixes
 models = 'models/'
-special_characters = models+'characters/'
+special_characters = f'{models}characters/'
 
 # locations of file of all skins
 files = {
-	'clu' : special_characters+'clu.blend',
-	'flynn' : special_characters+'flynn.blend',
-	'monitor' : special_characters+'monitor.blend',
-	}
+    'clu': f'{special_characters}clu.blend',
+    'flynn': f'{special_characters}flynn.blend',
+    'monitor': f'{special_characters}monitor.blend',
+}

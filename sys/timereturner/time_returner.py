@@ -52,12 +52,11 @@ def update_character_on():
 	owner = cont.owner
 	sensor = cont.sensors[0]
 	for obj in sensor.hitObjectList:
-		if "character" in obj :
-			if obj not in children:
-				pos = obj.worldPosition
-				obj.setParent(owner)
-				obj.worldPosition = pos
-				children.append(obj)
+		if "character" in obj and obj not in children:
+			pos = obj.worldPosition
+			obj.setParent(owner)
+			obj.worldPosition = pos
+			children.append(obj)
 	for i in range(len(children)):
 		obj = children[i]
 		dist = (obj.worldPosition-owner.children['timereturner elevator center'].worldPosition).length

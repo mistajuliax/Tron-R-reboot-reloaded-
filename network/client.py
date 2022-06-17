@@ -30,24 +30,24 @@ def get_object_id(kx_object):
 	Return the uniq ID of an object (character, item, ...) if the object's property
 	"uniqid" is not defined, assign an unused id to this object. 
 	"""
-	if "uniqid" in kx_object : return kx_object["uniqid"]
-	else :
-		total = unloaded+loaded
-		while bm.max_id in total:
-			bm.max_id += 1
-		i = bm.max_id
-		kx_object["uniqid"] = i
-		bm.max_id = bm.max_id+1
-		# new part of the function: 
-		if hasattr(bge.logic, 'client'):
-			dump_type = 'object'
-			if 'dump' in kx_object:
-				dump_type = kx_object['dump']
-			else:
-				kx_object['dump'] = 'object'
-			dump = dump_this(kx_object)
-			bge.logic.client.queued.append(b'newobject\0'+ dump_type.encode() +b'\0'+ pickle.dumps(dump))
-		return i
+	if "uniqid" in kx_object:
+		if "uniqid" in kx_object : return kx_object["uniqid"]
+	total = unloaded+loaded
+	while bm.max_id in total:
+		bm.max_id += 1
+	i = bm.max_id
+	kx_object["uniqid"] = i
+	bm.max_id = bm.max_id+1
+	# new part of the function: 
+	if hasattr(bge.logic, 'client'):
+		dump_type = 'object'
+		if 'dump' in kx_object:
+			dump_type = kx_object['dump']
+		else:
+			kx_object['dump'] = 'object'
+		dump = dump_this(kx_object)
+		bge.logic.client.queued.append(b'newobject\0'+ dump_type.encode() +b'\0'+ pickle.dumps(dump))
+	return i
 
 # replace standard function to access an object ID
 bm.get_object_id = get_object_id
@@ -80,11 +80,10 @@ def try_login(server, user, password):
 	s.close()
 	if reponse == b'authentication\0password accepted':
 		return ""
-	else:
-		try:
-			return reponse[15:].decode()
-		except:
-			return "reponse '%s' doesn't make sense" % repr(reponse)
+	try:
+		return reponse[15:].decode()
+	except:
+		return "reponse '%s' doesn't make sense" % repr(reponse)
 
 
 # simple callback for the game use
@@ -93,16 +92,17 @@ def callback_thread_step():
 
 # simple callback, to call from an object to synchronize
 def synchronize(cont):
+	if not hasattr(bge.logic, 'client') or not bge.logic.client:
+		return
 	owner = cont.owner
-	if hasattr(bge.logic, 'client') and bge.logic.client:
-		if marker_property_physic in owner and owner[marker_property_physic]:
-			bge.logic.client.sync_physic(owner)
-		if marker_property_property in owner:
-			props = owner[marker_property_property]
-			if type(props) == str:
-				props = owner[marker_property_property] = props.split()
-			for prop in props:
-				if prop in owner: bge.logic.client.sync_property(owner, prop)
+	if marker_property_physic in owner and owner[marker_property_physic]:
+		bge.logic.client.sync_physic(owner)
+	if marker_property_property in owner:
+		props = owner[marker_property_property]
+		if type(props) == str:
+			props = owner[marker_property_property] = props.split()
+		for prop in props:
+			if prop in owner: bge.logic.client.sync_property(owner, prop)
 
 
 
@@ -158,10 +158,8 @@ class Client(socket.socket):
 					idbytes = words[1]
 					if idbytes.isdigit():
 						id = int(idbytes)
-						obj = bm.get_object_by_id(self.scene, id)
-						if obj:
-							if obj.parent:  parent = obj.parent.name
-							else:           parent = None
+						if obj := bm.get_object_by_id(self.scene, id):
+							parent = obj.parent.name if obj.parent else None
 							msg = b'setmeca\0' + idbytes + b'\0' + pickle.dumps((
 								obj.worldPosition[:],       obj.worldOrientation.to_euler()[:],
 								obj.worldLinearVelocity[:], obj.worldAngularVelocity[:],
@@ -169,8 +167,7 @@ class Client(socket.socket):
 							self.send(msg)
 						else:
 							self.send(b'unknown\0'+ idbytes)
-				
-				# packet of kind:     getprop.id.propname
+
 				elif similar(packet, b'getprop\0') and zeros >= 2:
 					idbytes, propname = words[1:3]
 					if idbytes.isdigit():
@@ -183,8 +180,7 @@ class Client(socket.socket):
 								self.send(msg)
 						else:
 							self.send(b'unknown\0'+idbytes)
-				
-				# packet of kind:    setmeca.id.dump  ('\0' instead of .)
+
 				elif similar(packet, b'setmeca\0'): 
 					idbytes = words[1]
 					if idbytes.isdigit():
@@ -213,7 +209,7 @@ class Client(socket.socket):
 								obj.worldAngularVelocity = rangV
 							# save new old values
 							self.oldphysics[idbytes] = [rpos, rori, rlinV, rangV]
-							
+
 							#obj.setParent(parent)
 						# modify game backup
 						if id in bm.unloaded:
@@ -225,8 +221,7 @@ class Client(socket.socket):
 											dump['velocity'], dump['angular'], parent
 										) = physics
 										break
-				
-				# packet of kind:    setprop.id.propertyname.dump   ('\0' instead if .)
+
 				elif similar(packet, b'setprop\0') and zeros >= 2:
 					idbytes, propname = words[1:3]
 					if idbytes.isdigit():
@@ -247,8 +242,7 @@ class Client(socket.socket):
 												# normaly the table can be used as a pointer
 												dump['properties'][prop] = data
 												break
-				
-				# packet of kind:   changeid.IDsrc.IDdst
+
 				elif similar(packet, b'changeid\0') and zeros >= 2:
 					 idorigin, idtarget = words[1:3]
 					 if idorigin.isdigit() and idtarget.isdigit():
@@ -256,8 +250,7 @@ class Client(socket.socket):
 						 obj = get_object_by_id(self.scene, idorigin)
 						 if obj: obj['uniqid'] = idtarget
 						 print(packet, obj)
-				
-				# packet of kind:    newobject.dumptype.dump
+
 				elif similar(packet, b'newobject\0') and zeros >= 2:
 					dumptype = words[1]
 					dump = packet[12+len(dumptype):]
@@ -265,42 +258,39 @@ class Client(socket.socket):
 					except: pass
 					else:
 						dumptype = dumptype.decode()
-						if 'id' in dump and dumptype in (bm.marker_character, bm.marker_item, bm.marker_vehicle, bm.marker_object) :
+						if 'id' in dump and dumptype in (bm.marker_character, bm.marker_item, bm.marker_vehicle, bm.marker_object):
 							print(packet)
 							bm.last_backup[dumptype] = dump
-							object = bm.get_object_by_id(self.scene, dump['id'])
-							if object:
+							if object := bm.get_object_by_id(self.scene, dump['id']):
 								if dump['id'] not in bm.loaded:   bm.loaded.append(dump['id'])
 							elif   dump['id'] not in bm.unloaded: bm.unloaded.append(dump['id'])
 							if dump['id'] == bm.max_id:  bm.max_id += 1
-				
+
 				elif similar(packet, b'unsync\0') and zeros >= 2:
 					mode, id = packet.split(b'\0', maxsplit=3)[1:3]
 					if id.isdigit():
-						object = bm.get_object_by_id(int(id))
-						if object:
+						if object := bm.get_object_by_id(int(id)):
 							if mode == b'meca' and marker_property_physic in object: 
 								object[marker_property_physic] = False
 							elif mode == b'prop' and marker_property_property in object:
 								property = packet.split(b'\0', maxsplit=4)[3]
 								if property in object[marker_property_property]:
 									object[marker_property_property].pop(object[marker_property_property].index(property))
-				
-				
+
+
 				elif similar(packet, b'authentication\0'):
 					msg = words[1]
 					try: debugmsg('server answered', msg.decode())
 					except: pass
-				
-				# a client can reconnect itself when a server has crashed and restarted, just by reauthentification with the same login.
+
 				elif similar(packet, b'authentify\0'):
 					self.authentify()
-				
+
 				elif similar(packet, PACKET_STOP):
 					self.close()
 					self.run = False
 					return
-				
+
 				else:
 					for callback in self.callbacks:
 						if self.callback_error:
@@ -309,7 +299,7 @@ class Client(socket.socket):
 							try: 
 								if callback(self, packet): break
 							except: print('error in callback:', callback)
-			
+
 			# send queued, in the list order, one packet per packet received if the client receive.
 			if self.queue:
 				while len(self.queue):
@@ -317,8 +307,8 @@ class Client(socket.socket):
 					packet = self.queue.pop(0)
 					try: self.send(packet)
 					except: print('unable to send queued packet:', packet)
-		
-		
+
+
 		if end_step > time.time() and self.run:
 			self.send(b'requestsync\0')
 			self.next_update = time.time() + self.update_period

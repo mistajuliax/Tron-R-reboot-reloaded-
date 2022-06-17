@@ -39,18 +39,14 @@ class TerrainNode(object) :
 		self.dir = dir
 		self.exists = exists
 
-def create_matrix(unit=0, dimensions=[1]) :
+def create_matrix(unit=0, dimensions=[1]):
 	dimensions = list(dimensions)
 	dimensions.reverse()
-	if len(dimensions) :
-		mat = []
-		for i in range(dimensions[0]) :
-			mat.append(unit)
-	for dim in dimensions[1:] :
+	if len(dimensions):
+		mat = [unit for _ in range(dimensions[0])]
+	for dim in dimensions[1:]:
 		u = mat
-		mat = []
-		for i in range(dim) :
-			mat.append(deepcopy(u))
+		mat = [deepcopy(u) for _ in range(dim)]
 	return mat
 
 #def generate_cloud(position=Vector((0,0,0), dimensions = Vector((200,200,200))) :
@@ -108,12 +104,12 @@ class Terrain(object):
 		res_y = int((ymax-ymin)/basic_interval)
 		#res_z = int((self.hmax-self.hmin)/basic_interval)
 		res_z = 4
-		
+
 		c_matrix = create_matrix(TerrainNode(), (res_x, res_y, res_z)) # matrice de blocs
-		
+
 		# ajouter un sol en piere de base
 		mesh_n = definitions.stone_floor
-		object_n = mesh_n+".000"
+		object_n = f"{mesh_n}.000"
 		floor = bpy.data.objects.new("none", bpy.data.meshes[mesh_n])
 		floor.name = object_n
 		floor.location.x = xmin+(xmax-xmin)/2
@@ -123,7 +119,7 @@ class Terrain(object):
 		bpy.context.scene.objects.link(bpy.data.objects[floor.name])
 		print("floor set")
 		# creer les massifs
-		for i in range(0, int((random.random()+density)*math.sqrt(res_x*res_y))) :
+		for _ in range(int((random.random()+density)*math.sqrt(res_x*res_y))):
 			# decision de la taille du massif
 			sizex = int((random.random()*6)+1)
 			sizey = int((random.random()*6)+1)
@@ -131,60 +127,63 @@ class Terrain(object):
 			dir = random.choice([0., math.pi/2, math.pi, math.pi*3/2])
 			startx = int(random.random()*res_x)
 			starty = int(random.random()*res_y)
-			print("new macrobloc : starting at "+str((startx,starty))+" with size of "+str((sizex,sizey,stages)))
-			
+			print(
+			    f"new macrobloc : starting at {(startx, starty)} with size of {(sizex, sizey, stages)}"
+			)
+
 			if startx+sizex > res_x : sizex = res_x-startx
 			if starty+sizey > res_y : starty = res_y-starty
-			
+
 			mat = create_matrix(True, (sizex, sizey))
-			
+
 			# retirer les bords
 			possibilities = [(0,0), (1,0), (0,1)]
 			posx, posy = 0, 0
-			for i in range(5) :
+			for _ in range(5):
 				x, y = random.choice(possibilities)
 				posx += x
 				posy += y
-				if posx < sizex and posy < sizey :
-					print("remove at "+str((posx,posy)))
+				if posx < sizex and posy < sizey:
+					print(f"remove at {(posx, posy)}")
 					mat[posx][posy] = False
-				else :
+				else:
 					posx -= x
 					posy -= y
-			
+
 			# ajouter les etages
-			for s in range(stages) :
-				for y in range(sizey) :
-					for x in range(sizex) :
-						if mat[x][y] == True :
+			for s in range(stages):
+				for y in range(sizey):
+					for x in range(sizex):
+						if mat[x][y] == True:
 							X = x+startx
 							Y = y+starty
-							print("dir = "+str(dir)+"\t\t"+str(math.pi/2)+"   "+str(math.pi*3/2)+"   "+str(math.pi))
+							print(f"dir = {str(dir)}" + "\t\t" + str(math.pi / 2) + "   " +
+							      str(math.pi * 3 / 2) + "   " + str(math.pi))
 							if dir == 0. :            X += s
 							elif dir == math.pi/2 :   Y += s
 							elif dir == math.pi :     X -= s
 							elif dir == math.pi*3/2 : Y -= s
-							
+
 							if X >= 0 and X < res_x and Y >= 0 and Y < res_y :
 								c_matrix[X][Y][s] = TerrainNode(exists=True, dir=dir)
-						else : 
+						else: 
 							c_matrix[x+startx][y+starty][s] = TerrainNode(exists=False, dir=0)
-						#print(str((x+startx,y+starty,s))+"\t"+str(c_matrix[x+startx][y+starty][s].exists))
-		
-		
-			for s in range(stages-1) :
-				for y in range(sizey) :
-					for x in range(sizex) :
+										#print(str((x+startx,y+starty,s))+"\t"+str(c_matrix[x+startx][y+starty][s].exists))
+						
+
+			for s in range(stages-1):
+				for _ in range(sizey):
+					for _ in range(sizex):
 						if X >= 1 and X < res_x-1 and Y >= 1 and Y < res_y-1   and c_matrix[X][Y-1][s].exists and c_matrix[X][Y+1][s].exists and c_matrix[X-1][Y][s].exists	and c_matrix[X+1][Y][s].exists :
 							c_matrix[X][Y][s].exists = False
-		
+
 		# enlever les blocs inutiles
-		for z in range(res_z) :
-			for y in range(res_y) :
-				for x in range(res_x) :
+		for z in range(res_z):
+			for y in range(res_y):
+				for x in range(res_x):
 					#print(str((x,y,z))+"\t"+str(c_matrix[x][y][z].exists))
-					if c_matrix[x][y][z].exists == True :
-						mesh_name = random.choice(definitions.all_blocs)		
+					if c_matrix[x][y][z].exists == True:
+						mesh_name = random.choice(definitions.all_blocs)
 						location = Vector((
 							x*basic_interval+xmin,
 							y*basic_interval+ymin,
@@ -193,11 +192,11 @@ class Terrain(object):
 						rotation = Euler((0,0, c_matrix[x][y][z].dir))
 						r = random.random()
 						scale = Vector((1.5+r,1.5+r,1.5+r))
-				
+
 						# ajouter le bloc
 						object_name = "new"
 						bloc = bpy.data.objects.new(object_name, bpy.data.meshes[mesh_name])
-						bloc.name = "terrain-generated "+mesh_name
+						bloc.name = f"terrain-generated {mesh_name}"
 						bloc.location = location
 						bloc.rotation_euler = rotation
 						bloc.scale = scale

@@ -55,7 +55,7 @@ if 'oldori' not in own:
 	own['oldpos'] = pos
 	own['deltaori'] = own['oldori']-ori
 	own['deltapos'] = own['oldpos']-pos
-    
+
 own['deltaori'] = own['oldori']-ori
 own['deltapos'] = own['oldpos']-pos
 

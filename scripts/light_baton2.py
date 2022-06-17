@@ -78,7 +78,7 @@ class LightBaton(Item):
 				self.cycle['class'].init()
 				self.cycle['class'].enter(self.getOwnerObject(), self.cycle['class'].driversplace)
 				hologram.visible = False
-				
+
 				color = self.object['color']
 				if color in self.cyclecolors : 
 					#self.cycle['class'].armature.replaceMesh(self.cyclecolors[color])
@@ -167,47 +167,47 @@ def cycle_update(cont):
 	object = cont.owner
 	cycle = object['class']
 	onfloor = cycle.floor.sensors[0].status
-	
+
 	speed  = object['speed']
 	yaw    = object['yaw']
 	breaks = object['breaks']
 
 	velocity = object.localLinearVelocity
 	orientation = object.localOrientation.to_euler()
-	angular = object.localAngularVelocity
-	mass = object.mass
-	
 	if onfloor in (KX_INPUT_JUST_ACTIVATED, KX_INPUT_ACTIVE):
 		# acceleration
 		if speed < velocity.y:
 			acceleration = -cycle.max_accel/10
 		elif speed > velocity.y:
 			acceleration = cycle.max_accel
+		mass = object.mass
+
 		propulsion = mass * acceleration
 		lateral_force = -mass * velocity.x / cycle.reach_stability
-		
+
 		if breaks and velocity.y > 0: 
 			yaw *= 2
 			propulsion = -mass * cycle.max_accel
-		
+
 		# tilt rotation
 		if yaw > 0.1:    inclin = -pi/5
 		elif yaw < -0.1: inclin = pi/5
 		else:            inclin = 0
-			
+
+		angular = object.localAngularVelocity
 		tilt = (inclin - orientation.y) / cycle.reach_tilt
-		
+
 		# yaw speed
 		if yaw > 0: yaw = min(cycle.max_yaw*velocity.y, yaw)
 		else:       yaw = max(-cycle.max_yaw*velocity.y, yaw)
-		
+
 		# apply physic changes
 		object.applyForce((lateral_force, propulsion, 0.), True)
 		#object.applyTorque((0., sin(orientation.y)*torque_yaw, cos(orientation.y)*torque_yaw), True)
 		object.localAngularVelocity.y = tilt
 		#object.localAngularVelocity.x = yaw * sin(orientation.y)
 		object.localAngularVelocity.z = yaw * cos(orientation.y)
-		
+
 		# update wheels animation with vehicle speed
 		if cycle.animup == 20:
 			cycle.animup = 0

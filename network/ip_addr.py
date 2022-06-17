@@ -27,7 +27,7 @@ def expand_addr(addr):
 		count = 8-addr.count(":")
 		addr = addr.replace("::", (":0" * count) + ":")
 		if addr.startswith(":"):
-			addr = "0" + addr
+			addr = f"0{addr}"
 	return addr
 
 def _get_local_addr(family, remote):
@@ -78,8 +78,8 @@ def get_local_addr(remote=None, ipv6=True):
 			local = None
 		if not local:
 			local = _get_local_addr(socket.AF_INET, "192.0.2.123")
-			if not local:
-				return None
+		if not local:
+			return None
 	if local.startswith(_ignored_networks):
 		return None
 	return local

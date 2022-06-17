@@ -68,51 +68,51 @@ def get_object_id(kx_object):
 	"uniqid" is not defined, assign an unused id to this object. 
 	"""
 	global max_id
-    
-	if "uniqid" in kx_object : return kx_object["uniqid"]
-	else :
-		total = unloaded+loaded
-		while max_id in total:
-			max_id += 1
-		i = max_id
-		kx_object["uniqid"] = i
-		max_id = max_id+1
-		return i
+
+	if "uniqid" in kx_object:
+		if "uniqid" in kx_object : return kx_object["uniqid"]
+	total = unloaded+loaded
+	while max_id in total:
+		max_id += 1
+	i = max_id
+	kx_object["uniqid"] = i
+	max_id = max_id+1
+	return i
 
 def get_object_by_id(scene, id):
 	"""Return the first object (and normaly the only one) that have the uniqid id, or None."""
-	for i in range(len(scene.objects)):
-		if 'uniqid' in scene.objects[i] and scene.objects[i]['uniqid'] == id:
-			return scene.objects[i]
-	return None
+	return next(
+	    (scene.objects[i] for i in range(len(scene.objects))
+	     if 'uniqid' in scene.objects[i] and scene.objects[i]['uniqid'] == id),
+	    None,
+	)
 
 
 def dump_object(kx_object):
 	""" Dump the object given by the root KXGameObject """
 	
-	item_def = None
-	if 'class' in kx_object : item_def = kx_object['class']
+	item_def = kx_object['class'] if 'class' in kx_object else None
 	dump = {
 		"id" :       get_object_id(kx_object),
 		"pos" :      kx_object.worldPosition.xyz[:],
 		"orient" :   kx_object.worldOrientation.to_euler()[:],
 	}
-	velocity = kx_object.worldLinearVelocity.xyz[:]
-	if velocity : dump["velocity"] = velocity
-	angular = kx_object.worldAngularVelocity.xyz[:]
-	if angular : dump["angular"] = angular
-	scale = kx_object.worldScale.xyz[:]
-	if scale : dump["scale"] = scale
-	
-	properties = {}
-	for prop_name in kx_object.getPropertyNames():
-		if (prop_name not in properties_blacklist) and (type(kx_object[prop_name]) in properties_supported):
-			properties[prop_name] = kx_object[prop_name]
-	if properties:
+	if velocity := kx_object.worldLinearVelocity.xyz[:]:
+		dump["velocity"] = velocity
+	if angular := kx_object.worldAngularVelocity.xyz[:]:
+		dump["angular"] = angular
+	if scale := kx_object.worldScale.xyz[:]:
+		dump["scale"] = scale
+	if properties := {
+	    prop_name: kx_object[prop_name]
+	    for prop_name in kx_object.getPropertyNames()
+	    if (prop_name not in properties_blacklist) and (
+	        type(kx_object[prop_name]) in properties_supported)
+	}:
 		dump["properties"] = properties
 	if item_def:
 		dump["repr"] = repr(item_def)
-	
+
 	return dump
 
 
@@ -129,35 +129,38 @@ def dump_character(kx_object):
 	
 	dump = dump_object(kx_object)
 	character = kx_object['class']
-	
+
 	# basic character's attributes
 	dump["name"]    = character.name
 	dump["skin"]    = character.skin_name
 	dump["helmet"]  = character.skin.helmet_active
-	
+
 	# items (just item name and properties)
 	inventory = {}
 	if character.skin.handitem:
 		item = character.skin.handitem
-		properties = {}
-		for prop_name in item.getPropertyNames():
-			if (prop_name not in properties_blacklist) and (type(item[prop_name]) in properties_supported):
-				properties[prop_name] = item[prop_name]
+		properties = {
+		    prop_name: item[prop_name]
+		    for prop_name in item.getPropertyNames()
+		    if (prop_name not in properties_blacklist) and (
+		        type(item[prop_name]) in properties_supported)
+		}
 		inventory["hand"] = (get_object_id(item), item["itemname"], properties)
 	else:
 		inventory["hand"] = None
 	attachs = character.skin.attachs
 	items = character.skin.items
 	for i in range(len(attachs)):
-		item = items[i]
-		if item:
-			properties = {}
-			for prop_name in item.getPropertyNames():
-				if (prop_name not in properties_blacklist) and (type(item[prop_name]) in properties_supported):
-					properties[prop_name] = item[prop_name]
+		if item := items[i]:
+			properties = {
+			    prop_name: item[prop_name]
+			    for prop_name in item.getPropertyNames()
+			    if (prop_name not in properties_blacklist) and (
+			        type(item[prop_name]) in properties_supported)
+			}
 			inventory[attachs[i].name] = (get_object_id(item), item["itemname"], properties)
 	dump["inventory"] = inventory
-	
+
 	return dump
 
 
@@ -167,25 +170,23 @@ def dump_vehicle(kx_object):
 	dump = dump_object(kx_object)
 	dump["vehiclename"] = kx_object["vehiclename"]
 	vehicle = kx_object['class']
-	
+
 	# dump driver (optionnal)
 	if vehicle.driver: dump['driver'] = vehicle.driver['class'].name
-	
-	# dump passengers (name by place)
-	passengers = {}
+
 	places = vehicle.passengers.keys()
-	for i in range(len(vehicle.passengers)):
-		if vehicle.passengers[places[i]] : 
-			passengers[places[i]] = vehicle.passengers[places[i]]['class'].name
-	if passengers: dump['passengers'] = passengers
-	
+	if passengers := {
+	    places[i]: vehicle.passengers[places[i]]['class'].name
+	    for i in range(len(vehicle.passengers)) if vehicle.passengers[places[i]]
+	}:
+		dump['passengers'] = passengers
 	return dump
 
 
 def dump_this(obj):
 	"""dump the object given, return the dump dict and store it in global variable last_backup. """
 	dump = obj[marker_property]
-	
+
 	if dump == "character":
 		dump = dump_character(obj)
 		loaded.append(dump['id'])
@@ -197,15 +198,15 @@ def dump_this(obj):
 			else: i += 1
 		last_backup['characters'].append(dump)
 		return dump
-	
+
 	elif dump == "vehicle":
 		dump = dump_vehicle(obj)
 		loaded.append(dump['id'])
 		last_backup['vehicles'].append(dump)
 		return dump
-	
+
 	elif dump == "item":
-		if not obj.parent or not (obj.parent.parent and "character" not in obj.parent) :
+		if not obj.parent or not obj.parent.parent or "character" in obj.parent:
 			dump = dump_item(obj)
 			loaded.append(dump['id'])
 			i = 0
@@ -215,7 +216,7 @@ def dump_this(obj):
 				else: i += 1
 			last_backup['items'].append(dump)
 			return dump
-	
+
 	elif dump == "object":
 		dump = dump_object(obj)
 		dump['name'] = obj.name
@@ -227,7 +228,7 @@ def dump_this(obj):
 			else: i += 1
 		last_backup['objects'].append(dump)
 		return dump
-	
+
 	else: return None
 
 
@@ -236,10 +237,10 @@ def dump_all(scenestodump=['Scene']):
 	global last_backup, loaded, thread_loader_running
 	if thread_loader_running: return
 	thread_loader_running = True
-	
+
 	# remove old internal datas first
 	loaded = []
-	
+
 	# then dump data from scenes
 	scenes = bge.logic.getSceneList()
 	for scene in scenes:
@@ -247,7 +248,7 @@ def dump_all(scenestodump=['Scene']):
 			for obj in scene.objects:
 				if marker_property in obj :
 					dump_this(obj)
-	
+
 	# remove last_backup IDs which are not in unloaded or in loaded objects
 	totalids = loaded+unloaded
 	for dataname in ('characters', 'vehicles', 'items', 'objects'):
@@ -256,7 +257,7 @@ def dump_all(scenestodump=['Scene']):
 			if last_backup[dataname][i]['id'] not in totalids:
 				last_backup[dataname].pop(i)
 			else: i += 1
-	
+
 	last_backup['max id'] = max_id
 	thread_loader_running = False
 
@@ -372,7 +373,7 @@ def _loader_thread():
 				for obj in scene.objects:
 					if 'id' in obj and obj['id'] not in loaded: loaded.append(obj['id'])
 		bge.logic.canstop -= 1
-		
+
 		# remove last_backup IDs which are not in unloaded or in loaded objects
 		for dataname in ('characters', 'vehicles', 'items', 'objects'):
 			for i in range(len(last_backup[dataname])):
@@ -397,7 +398,7 @@ def loadbackup(filename, async=True):
 
 
 def savebackup(filename=None):
-	if filename == None: filename = save_file
+	if filename is None: filename = save_file
 	try:  f = open(filename, 'w')
 	except IOError:  print('error: unable to write backup file \"%s\"' % filename)
 	else:

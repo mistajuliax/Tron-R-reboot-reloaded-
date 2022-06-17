@@ -21,7 +21,7 @@ import random
 import bge
 import mathutils
 
-def spawn_cloud() :
+def spawn_cloud():
 	cont = bge.logic.getCurrentController()
 	owner = cont.owner
 	scene = bge.logic.getCurrentScene()
@@ -30,11 +30,12 @@ def spawn_cloud() :
 	facescale = owner["facescale"]
 
 	pos = owner.worldPosition.copy()
-	for i in range(int(scale.x*scale.y*scale.z/(facescale**3))) :
+	for _ in range(int(scale.x*scale.y*scale.z/(facescale**3))):
 		num = str(random.randrange(15))
-		while len(num) != 3 : num = "0"+num
-		new = scene.addObject("cloud face."+num, owner)
-		
+		while len(num) != 3:
+			num = f"0{num}"
+		new = scene.addObject(f"cloud face.{num}", owner)
+
 		pos.x += (random.random()-0.5)*scale.x
 		pos.y += (random.random()-0.5)*scale.y
 		pos.z += (random.random()-0.5)*scale.z
@@ -43,7 +44,7 @@ def spawn_cloud() :
 		if abs(pos.z - owner.worldPosition.z) > scale.z/2 : 	pos.z = owner.worldPosition.z + (random.random()-0.5)*scale.z
 		#print("create cloud face at", pos)
 		new.worldPosition = pos
-		
+
 		new.localScale.x = facescale
 		new.localScale.y = facescale
 		new.localScale.z = facescale

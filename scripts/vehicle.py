@@ -65,8 +65,7 @@ class Vehicle(object):
 				place = child['vehicle place']
 				if place == "driver" : self.driversplace = child
 				else: self.passengers[child] = None
-		client = bge.logic.client
-		if client:
+		if client := bge.logic.client:
 			if client_callback not in client.callbacks: client.callbacks.append(client_callback)
 			client.sync_physic(self.object)
 			client.sync_property(self.object, 'hp')
@@ -75,13 +74,12 @@ class Vehicle(object):
 	def syncInfo(self, info, data):
 		if bge.logic.client:
 			if type(data) == int:      data = str(data).encode()
-			elif type(data) == bytes:  pass
-			else:                      data = pickle.dumps(data)
+			elif type(data) != bytes:                      data = pickle.dumps(data)
 			bge.logic.client.add_to_queue(b'vehicle\0'+info+b'\0'+str(bm.get_object_id(self.object)).encode()+b'\0'+data)
 
 	def enter(self, character, place, netsync=True):
 		# character est le kxobject du personnage, place est le kxobject (empty) sur lequel est attaché le perso
-		if self.driver == None and place == self.driversplace:
+		if self.driver is None and place == self.driversplace:
 			if netsync: self.syncInfo(b'drive', str(bm.get_object_id(character)).encode())
 			self.driver = character
 			keyword = self.driversplace['vehicle place']+" "+self.name
@@ -92,8 +90,8 @@ class Vehicle(object):
 			self.driver['class'].disable()
 			self.driver.setParent(self.driversplace)
 			self.driver['class'].vehicle = self.object
-			
-		elif place in self.passengers.keys() and self.passengers[place] == None:
+
+		elif place in self.passengers.keys() and self.passengers[place] is None:
 			if netsync: self.syncInfo(b'enter', (bm.get_object_id(character), place.name))
 			self.passengers[place] = character
 			keyword = place['vehicle place']+" "+self.name
@@ -158,61 +156,62 @@ class Vehicle(object):
 
 
 def client_callback(interface, packet):
-	if client.similar(packet, b'vehicle\0'):
-		# then retreive vehicle
-		if packet.count(b'\0') < 3:
-			print('error: client_callback: invalid packet', packet)
-			return True
-		info, idbytes = packet.split(b'\0', maxsplit=3)[1:3]
-		data = packet[10+len(info)+len(idbytes):]
-		if not idbytes.isdigit(): return True
-		uniqid = int(idbytes)
-		object = bm.get_object_by_id(bge.logic.getCurrentScene(), uniqid)
-		if not object:
-			print('error: client_callback: vehicle', uniqid, "doesn't exists")
-			return True
-		if 'class' not in object:
-			print('error: client_callback: vehicle', uniqid, "doesn't have any class")
-			return True
-		vehicle = object['class']
-		
-		# treatment of informations
-		if info == b'look':
-			try: rotEuler = pickle.loads(data)
-			except: return True
-			vehicle.updateLook(rotEuler, netsync=False)
-		
-		elif info == b'command':
-			try: speed, yaw, breaks = pickle.loads(data)
-			except: return True
-			vehicle.updateControl(speed, yaw, breaks, netsync=False)
-		
-		elif info == b'drive':
-			if not data.isdigit(): return True
-			character = bm.get_object_by_id(bge.logic.getCurrentScene(), int(data))
-			if not character: return True
-			vehicle.enter(character, vehicle.driversplace, netsync=False)
-		
-		elif info == b'enter':
-			try: id, placename = pickle.loads(data)
-			except: return True
-			character = bm.get_object_by_id(bge.logic.getCurrentScene(), id)
-			place = None
-			if placename == vehicle.driversplace.name: place = vehicle.driversplace
-			for placeobject in vehicle.passengers.keys():
-				if placeobject.name == placename:
-					place = placeobject
-			if place and character:
-				vehicle.enter(character, place, netsync=False)
-		
-		elif info == b'exit':
-			if not data.isdigit(): return False
-			character = bm.get_object_by_id(bge.logic.getCurrentScene(), int(data))
-			if not character: return False
-			vehicle.exit(character, netsync=False)
-		
-		elif info == b'destroy':
-			vehicle.destroy(netsync=False)
-			
-		elif info == b'remove':
-			vehicle.remove(netsync=False)
+	if not client.similar(packet, b'vehicle\0'):
+		return
+	# then retreive vehicle
+	if packet.count(b'\0') < 3:
+		print('error: client_callback: invalid packet', packet)
+		return True
+	info, idbytes = packet.split(b'\0', maxsplit=3)[1:3]
+	data = packet[10+len(info)+len(idbytes):]
+	if not idbytes.isdigit(): return True
+	uniqid = int(idbytes)
+	object = bm.get_object_by_id(bge.logic.getCurrentScene(), uniqid)
+	if not object:
+		print('error: client_callback: vehicle', uniqid, "doesn't exists")
+		return True
+	if 'class' not in object:
+		print('error: client_callback: vehicle', uniqid, "doesn't have any class")
+		return True
+	vehicle = object['class']
+
+	# treatment of informations
+	if info == b'look':
+		try: rotEuler = pickle.loads(data)
+		except: return True
+		vehicle.updateLook(rotEuler, netsync=False)
+
+	elif info == b'command':
+		try: speed, yaw, breaks = pickle.loads(data)
+		except: return True
+		vehicle.updateControl(speed, yaw, breaks, netsync=False)
+
+	elif info == b'drive':
+		if not data.isdigit(): return True
+		character = bm.get_object_by_id(bge.logic.getCurrentScene(), int(data))
+		if not character: return True
+		vehicle.enter(character, vehicle.driversplace, netsync=False)
+
+	elif info == b'enter':
+		try: id, placename = pickle.loads(data)
+		except: return True
+		character = bm.get_object_by_id(bge.logic.getCurrentScene(), id)
+		place = None
+		if placename == vehicle.driversplace.name: place = vehicle.driversplace
+		for placeobject in vehicle.passengers.keys():
+			if placeobject.name == placename:
+				place = placeobject
+		if place and character:
+			vehicle.enter(character, place, netsync=False)
+
+	elif info == b'exit':
+		if not data.isdigit(): return False
+		character = bm.get_object_by_id(bge.logic.getCurrentScene(), int(data))
+		if not character: return False
+		vehicle.exit(character, netsync=False)
+
+	elif info == b'destroy':
+		vehicle.destroy(netsync=False)
+
+	elif info == b'remove':
+		vehicle.remove(netsync=False)

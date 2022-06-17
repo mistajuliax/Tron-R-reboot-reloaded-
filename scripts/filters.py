@@ -94,9 +94,16 @@ def callback_update(cont):
 			if filters[i][FILTER_SHORTNAME] == name:
 				#print('module \"%s\": enable filter \'%s\'.' % (__name__, name))
 				filter_code = ""
-				try: f = open(bge.logic.filters_path+'/'+filters[i][FILTER_FILE], 'r')
+				try:
+					f = open(f'{bge.logic.filters_path}/{filters[i][FILTER_FILE]}', 'r')
 				except OSError: 
-					print('module \"%s\": failed to set 2D filter \'%s\' (unable to open file \'%s\').' % (__name__, filters[i][name], bge.logic.filters_path+'/'+filters[i][FILTER_FILE]))
+					print(
+					    'module \"%s\": failed to set 2D filter \'%s\' (unable to open file \'%s\').'
+					    % (
+					        __name__,
+					        filters[i][name],
+					        f'{bge.logic.filters_path}/{filters[i][FILTER_FILE]}',
+					    ))
 					return False
 				else:
 					filter_code = f.read()
